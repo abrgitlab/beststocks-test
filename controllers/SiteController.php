@@ -2,13 +2,10 @@
 
 namespace app\controllers;
 
+use app\models\Currency;
 use Yii;
-use yii\filters\AccessControl;
+use yii\filters\auth\HttpBearerAuth;
 use yii\web\Controller;
-use yii\web\Response;
-use yii\filters\VerbFilter;
-use app\models\LoginForm;
-use app\models\ContactForm;
 
 class SiteController extends Controller
 {
@@ -18,23 +15,9 @@ class SiteController extends Controller
     public function behaviors()
     {
         return [
-            'access' => [
-                'class' => AccessControl::className(),
-                'only' => ['logout'],
-                'rules' => [
-                    [
-                        'actions' => ['logout'],
-                        'allow' => true,
-                        'roles' => ['@'],
-                    ],
-                ],
-            ],
-            'verbs' => [
-                'class' => VerbFilter::className(),
-                'actions' => [
-                    'logout' => ['post'],
-                ],
-            ],
+            'authenticator' => [
+                'class' => HttpBearerAuth::class,
+            ]
         ];
     }
 
@@ -47,82 +30,33 @@ class SiteController extends Controller
             'error' => [
                 'class' => 'yii\web\ErrorAction',
             ],
-            'captcha' => [
-                'class' => 'yii\captcha\CaptchaAction',
-                'fixedVerifyCode' => YII_ENV_TEST ? 'testme' : null,
-            ],
         ];
     }
 
-    /**
-     * Displays homepage.
-     *
-     * @return string
-     */
-    public function actionIndex()
+    public function actionCurrencies()
     {
-        return $this->render('index');
-    }
+        $page = (int) (Yii::$app->request->get('page') ?? 1);
+        $perPage = (int) (Yii::$app->request->get('perPage') ?? 15);
 
-    /**
-     * Login action.
-     *
-     * @return Response|string
-     */
-    public function actionLogin()
-    {
-        if (!Yii::$app->user->isGuest) {
-            return $this->goHome();
-        }
+        $count = Currency::find()->count();
 
-        $model = new LoginForm();
-        if ($model->load(Yii::$app->request->post()) && $model->login()) {
-            return $this->goBack();
-        }
+        $data = Currency::find()
+            ->limit($perPage)
+            ->offset(($page - 1) * $perPage)
+            ->all();
 
-        $model->password = '';
-        return $this->render('login', [
-            'model' => $model,
+        return $this->render('currencies', [
+            'page' => $page,
+            'perPage' => $perPage,
+            'pagesCount' => (int) ceil($count / $perPage),
+            'count' => $count,
+            'data' => $data
         ]);
     }
 
-    /**
-     * Logout action.
-     *
-     * @return Response
-     */
-    public function actionLogout()
+    public function actionCurrency(int $currency)
     {
-        Yii::$app->user->logout();
 
-        return $this->goHome();
-    }
-
-    /**
-     * Displays contact page.
-     *
-     * @return Response|string
-     */
-    public function actionContact()
-    {
-        $model = new ContactForm();
-        if ($model->load(Yii::$app->request->post()) && $model->contact(Yii::$app->params['adminEmail'])) {
-            Yii::$app->session->setFlash('contactFormSubmitted');
-
-            return $this->refresh();
-        }
-        return $this->render('contact', [
-            'model' => $model,
-        ]);
-    }
-
-    /**
-     * Displays about page.
-     *
-     * @return string
-     */
-    public function actionAbout()
-    {
-        return $this->render('about');
+        //TODO
     }
 }
