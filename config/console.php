@@ -26,6 +26,9 @@ $config = [
             ],
         ],
         'db' => $db,
+        'currencyFetcher' => [
+            'class' => 'app\service\CurrencyFetcher',
+        ],
     ],
     'params' => $params,
     /*
